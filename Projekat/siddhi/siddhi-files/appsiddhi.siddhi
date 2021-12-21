@@ -1,0 +1,28 @@
+@App:name("appsiddhi")
+
+@App:description("Analyzer of beach quality.")
+
+@source(type = 'http', receiver.url = "http://siddhi:8006/analytics", @map(type = 'json'))
+@Annotation(property = "value")
+define stream InputStream (name string, temp int, bat int, waveperiod int, time string);
+
+@sink(type='http', publisher.url='http://gateway:4000/CEP',method='POST', headers='Content-type:application/json', basic.auth.enabled='false', @map(type='json'))
+define stream OutputStream (name string, temp int, bat int, waveperiod int, time string, warning string );
+
+@info(name = 'TemperatureQuery')
+from InputStream#window.length(1)[temp > 0]
+select name, temp, bat, waveperiod, time, 
+ifThenElse(temp<15, "Cold water" , ifThenElse(temp<25, "Medium temperature of water", "No warning") ) as warning
+insert into OutputStream;
+
+@info(name = 'BatteryQuery')
+from InputStream#window.length(1)[bat > 0]
+select name, temp, bat, waveperiod, time,
+ifThenElse(bat<10, "Low battery level", "No warning") as warning
+insert into OutputStream;
+
+@info(name = 'WavePeriodQuery')
+from InputStream#window.length(1)[waveperiod > 0]
+select name, temp, bat, waveperiod, time,
+ifThenElse(waveperiod<4, "Low wave period", "No warning") as warning
+insert into OutputStream;

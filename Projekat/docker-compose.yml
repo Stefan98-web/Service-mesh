@@ -1,0 +1,100 @@
+version: '3.0'
+services:
+    mongo:
+      image: mongo
+      volumes:
+        - mongodata:/data/db
+    nats:
+      image: nats:latest
+    mqtt:
+      image: eclipse-mosquitto:1.6.14
+      hostname: mosquitto-broker
+      container_name: mosquitto-broker
+      networks:
+        - default
+      ports:
+        - "1883:1883"
+      networks:
+        default:
+    siddhi:
+      build:
+        context: ./siddhi
+      image: siddhi
+      ports:
+        - "8006:8006"
+      depends_on:
+        - analytics
+    sensor:
+      build:
+        context: .
+      image: service-sensor
+      env_file: docker-compose.env
+      environment:
+          NODEID: "node-sensor"
+          SERVICES: sensor
+      depends_on:
+        - nats
+    data:
+      build:
+        context: .
+      image: data-sensor
+      env_file: docker-compose.env
+      environment:
+        NODEID: "node-data"
+        SERVICES: data
+      depends_on:
+        - nats
+        - mongo
+        - mqtt
+      links:
+        - mongo
+    analytics:
+      build:
+        context: .
+      image: analytics
+      env_file: docker-compose.env
+      environment:
+        NODEID: "node-analytics"
+        SERVICES: analytics
+      ports:
+        - "5000:5000"
+      depends_on:
+        - mqtt
+        - mongo
+      links:
+        - mongo
+    command:
+      build:
+        context: .
+      image: command
+      env_file: docker-compose.env
+      environment:
+        NODEID: "node-command"
+        SERVICES: command
+      depends_on:
+        - mqtt
+    gateway:
+      build:
+        context: .
+      image: service-gateway
+      env_file: docker-compose.env
+      environment:
+        NODEID: "node-gateway"
+        SERVICES: gateway
+        PORT: 4000
+      ports:
+        - "4000:4000"
+      depends_on:
+        - nats
+    webdashboard:
+      build:
+        context: ./webdashboard
+        dockerfile: Dockerfile
+      ports:
+        - 3001:3000
+      stdin_open: true
+      volumes:
+        - './webdashboard:/front'
+        - '/front/node_modules'
+volumes:
+  mongodata:
