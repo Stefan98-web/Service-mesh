@@ -14,8 +14,6 @@ services:
         - default
       ports:
         - "1883:1883"
-      networks:
-        default:
     siddhi:
       build:
         context: ./siddhi
