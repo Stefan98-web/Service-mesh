@@ -2,6 +2,7 @@
 const express = require("express");
 const bodyParser = require('body-parser');
 const socket = require("socket.io");
+const cors = require("cors");
 
 module.exports = {
     name: "gateway",
@@ -84,6 +85,7 @@ module.exports = {
         const app = express();
         app.use(bodyParser.urlencoded({ extended: false }));
         app.use(bodyParser.json());
+        app.use(cors());
         this.initRoutes(app);
         this.app = app; 
 
