@@ -18,6 +18,7 @@
     "express": "^4.17.1",
     "fs": "^0.0.1-security",
     "http": "^0.0.1-security",
+    "influx": "^5.9.3",
     "mkdirp": "^0.5.5",
     "moleculer": "^0.14.13",
     "moleculer-db": "^0.8.13",

@@ -3,8 +3,10 @@
 const DbService = require("../mixins/db.mixin");
 const mqtt=require('mqtt');
 const { ServiceBroker } = require("moleculer");
+const Influx = require('influx');
 var client = null;
 const broker = new ServiceBroker();
+var influx = null;
 module.exports = {
 	name: "data",
 	mixins: [
@@ -33,7 +35,23 @@ module.exports = {
 				data: { type: "object" }
 			},
 			async handler(ctx){
-                
+				
+            var currentdate = new Date();
+			/*this.influx.writePoints([
+                    {
+                        measurement: 'sensorDataIOT',
+                        fields: {
+							temperature: 1,
+							sensorId: 1
+                        },
+                        time: Date.now() 
+                    }
+				]);*/
+
+			this.influx.query(`select * from sensorDataIOT`)
+  				.then( result => console.log(JSON.stringify(result)) )
+  					.catch( error =>  console.log( error ) );
+
                 let entity = ctx.params.data;
 				const doc = await this.adapter.insert(entity);
 				let info = { "entity":entity };
@@ -99,6 +117,32 @@ module.exports = {
 	created() {
 		client = mqtt.connect("mqtt://mqtt:1883",{clientId:"mqttjs02"});
         client.on("connect",function() { console.log("Data connected to MQTT") });
+
+		this.influx = new Influx.InfluxDB({
+			host: process.env.INFLUXDB_HOST || 'influx',
+			database: process.env.INFLUXDB_DATABASE || 'sensorDataIOT',
+			port: 8086,
+			username: process.env.ADMIN_USER || 'admin',
+			password: process.env.ADMIN_PASSWORD || 'admin',
+			schema: [
+				{
+					measurement: 'sensorDataIOT',
+					fields: {
+						sensorId: Influx.FieldType.INTEGER,
+						temperature: Influx.FieldType.INTEGER,
+					},
+					tags: ['host'],
+				}
+			]
+		});
+		
+		this.influx.getDatabaseNames().then((names) => {
+			console.log(names)
+			if (!names.includes('sensorDataIOT')) {
+			  return this.influx.createDatabase('sensorDataIOT');
+			}
+			return null;
+		}).catch( error => console.log(error));
 	},
 
 	/**

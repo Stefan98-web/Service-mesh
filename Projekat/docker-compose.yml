@@ -4,6 +4,14 @@ services:
       image: mongo
       volumes:
         - mongodata:/data/db
+    influx:
+      image: influxdb:1.8.10
+      environment: 
+        - INFLUXDB_ADMIN_ENABLED=true
+      volumes:
+        - influxdata:/var/lib/influx.db
+      ports:
+        - '8086:8086'    
     nats:
       image: nats:latest
     mqtt:
@@ -40,10 +48,15 @@ services:
       environment:
         NODEID: "node-data"
         SERVICES: data
+        ADMIN_USER: admin
+        ADMIN_PASSWORD: admin
+        INFLUXDB_DATABASE: sensorDataIOT
+        INFLUXDB_HOST: influx
       depends_on:
         - nats
         - mongo
         - mqtt
+        - influx
       links:
         - mongo
     analytics:
@@ -54,11 +67,16 @@ services:
       environment:
         NODEID: "node-analytics"
         SERVICES: analytics
+        ADMIN_USER: admin
+        ADMIN_PASSWORD: admin
+        INFLUXDB_DATABASE: sensorDataIOTAnalytics
+        INFLUXDB_HOST: influx
       ports:
         - "5000:5000"
       depends_on:
         - mqtt
         - mongo
+        - influx
       links:
         - mongo
     command:
@@ -96,3 +114,4 @@ services:
         - '/front/node_modules'
 volumes:
   mongodata:
+  influxdata:
