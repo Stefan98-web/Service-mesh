@@ -5,7 +5,6 @@ const { response } = require('express');
 const mqtt=require('mqtt');
 const request = require('request');
 const DbService = require("../mixins/db.mixin");
-const Influx = require('influx');
 var client = null;
 var service=null;
 
@@ -79,32 +78,6 @@ module.exports = {
         client.on("connect", function() { console.log("Analytics connected to MQTT") }); 
         client.on("error", function(error){
             console.log("Can't connect" + error)});
-			
-			this.influx = new Influx.InfluxDB({
-				host: process.env.INFLUXDB_HOST || 'influx',
-				database: process.env.INFLUXDB_DATABASE || 'sensorDataIOTAnalytics',
-				port: 8086,
-				username: process.env.ADMIN_USER || 'admin',
-				password: process.env.ADMIN_PASSWORD || 'admin',
-				schema: [
-					{
-						measurement: 'sensorDataIOTAnalytics',
-						fields: {
-							sensorId: Influx.FieldType.INTEGER,
-							temperature: Influx.FieldType.INTEGER,
-						},
-						tags: ['host'],
-					}
-				]
-			});
-			
-			this.influx.getDatabaseNames().then((names) => {
-				console.log(names)
-				if (!names.includes('sensorDataIOTAnalytics')) {
-				  return this.influx.createDatabase('sensorDataIOTAnalytics');
-				}
-				return null;
-			}).catch( error => console.log(error));	
 	},
 
 	/**

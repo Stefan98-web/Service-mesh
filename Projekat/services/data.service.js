@@ -1,17 +1,12 @@
 "use strict";
 
-const DbService = require("../mixins/db.mixin");
 const mqtt=require('mqtt');
 const { ServiceBroker } = require("moleculer");
 const Influx = require('influx');
 var client = null;
 const broker = new ServiceBroker();
-var influx = null;
 module.exports = {
 	name: "data",
-	mixins: [
-		DbService("beach-water-quality")
-	],
 	settings: {
        /* fields:["_id","Beach Name","Measurement timestamp","Water temperature",
     "Turbidity","Transducer depth","Wave height","Wave Period","Battery life",
@@ -35,26 +30,29 @@ module.exports = {
 				data: { type: "object" }
 			},
 			async handler(ctx){
-				
-            var currentdate = new Date();
-			/*this.influx.writePoints([
-                    {
-                        measurement: 'sensorDataIOT',
+
+                let entity = ctx.params.data;
+
+				let info = { "entity": entity };
+
+				this.influx.writePoints([
+                    { 
+                        measurement: 'SensorDataIOT',
                         fields: {
-							temperature: 1,
-							sensorId: 1
+							BeachName: entity["Beach Name"],
+							MeasurementTimestamp: entity["Measurement Timestamp"],
+							WaterTemperature: parseFloat(entity["Water Temperature"]),
+							Turbidity: parseFloat(entity["Turbidity"]),
+							TransducerDepth: 0.123,
+							WaveHeight: parseFloat(entity["Wave Height"]),
+							WavePeriod: parseFloat(entity["Wave Period"]),
+							BatteryLife: parseFloat(entity["Battery Life"]),
+							MeasurementTimestampLabel: entity["Measurement Timestamp Label"],
+							MeasurementID: entity["Measurement ID"]
                         },
                         time: Date.now() 
                     }
-				]);*/
-
-			this.influx.query(`select * from sensorDataIOT`)
-  				.then( result => console.log(JSON.stringify(result)) )
-  					.catch( error =>  console.log( error ) );
-
-                let entity = ctx.params.data;
-				const doc = await this.adapter.insert(entity);
-				let info = { "entity":entity };
+				]);
 
 				if (client.connected==true)
 				{
@@ -65,7 +63,7 @@ module.exports = {
 					console.log("Data klijent nije povezan na MQTT");
 				}
 
-				return doc;
+				return;
 			}
 		},
 
@@ -83,26 +81,45 @@ module.exports = {
 			},
 			async handler(ctx){
 
-				let params = {
-					limit:10,
-					sort: ["Beach Name", "Water Temperature", "Battery Life"],
-					query: {}
-					 };
+				let query = "select * from SensorDataIOT where "
 				if(ctx.params.name!="All"){
-						params.query["Beach Name"]=ctx.params.name.toString();
-					}
+						query = query + "BeachName='" + ctx.params.name.toString() + "'";
+				}
+				else
+				{
+					query = query + "BeachName='Montrose Beach'"
+				}
 				if(ctx.params.temp!="All"){
-					   params.query["Water Temperature"]=ctx.params.temp.toString();
+					   query = query + " AND WaterTemperature=" + ctx.params.temp.toString();
 				   }
 				if(ctx.params.bat!="All"){
-					   params.query["Battery Life"]=ctx.params.bat.toString();
+					   query = query + " AND BatteryLife=" + ctx.params.bat.toString();
 				   }
 				if(ctx.params.wavePeriod!="All"){
-					params.query["Wave Period"]=ctx.params.wavePeriod.toString();
+					query = query + " AND WavePeriod=" + ctx.params.wavePeriod.toString();
 				}
 
-				const result = await this.adapter.find(params);
-				return result;
+				let results =[];
+				await this.influx.query(query)
+  				.then( result => {
+					 result.forEach(r =>{
+						 results.push(
+							 {
+								"Beach Name": r["BeachName"],
+								"Measurement Timestamp": r["MeasurementTimestamp"],
+								"Water Temperature": r["WaterTemperature"],
+								"Transducer Depth": r["TransducerDepth"],
+								"Wave Height": r["WaveHeight"],
+								"Wave Period": r["WavePeriod"],
+								"Battery Life": r["BatteryLife"],
+								"Measurement Timestamp Label": r["MeasurementTimestampLabel"],
+								"Measurement ID": r["MeasurementID"],
+								"Turbidity": r["Turbidity"]
+							 })
+					 })
+				  } )
+  					.catch( error =>  console.log( error ) );
+				return results;
 			}
 		},	
 	},
@@ -120,16 +137,24 @@ module.exports = {
 
 		this.influx = new Influx.InfluxDB({
 			host: process.env.INFLUXDB_HOST || 'influx',
-			database: process.env.INFLUXDB_DATABASE || 'sensorDataIOT',
+			database: process.env.INFLUXDB_DATABASE || 'SensorDataIOT',
 			port: 8086,
 			username: process.env.ADMIN_USER || 'admin',
 			password: process.env.ADMIN_PASSWORD || 'admin',
 			schema: [
 				{
-					measurement: 'sensorDataIOT',
+					measurement: 'SensorDataIOT',
 					fields: {
-						sensorId: Influx.FieldType.INTEGER,
-						temperature: Influx.FieldType.INTEGER,
+						BeachName: Influx.FieldType.STRING,
+						MeasurementTimestamp: Influx.FieldType.STRING,
+						WaterTemperature: Influx.FieldType.FLOAT,
+						Turbidity: Influx.FieldType.FLOAT,
+						TransducerDepth: Influx.FieldType.FLOAT,
+						WaveHeight: Influx.FieldType.FLOAT,
+						WavePeriod: Influx.FieldType.FLOAT,
+						BatteryLife: Influx.FieldType.FLOAT,
+						MeasurementTimestampLabel: Influx.FieldType.STRING,
+						MeasurementID: Influx.FieldType.STRING
 					},
 					tags: ['host'],
 				}
@@ -138,8 +163,8 @@ module.exports = {
 		
 		this.influx.getDatabaseNames().then((names) => {
 			console.log(names)
-			if (!names.includes('sensorDataIOT')) {
-			  return this.influx.createDatabase('sensorDataIOT');
+			if (!names.includes('SensorDataIOT')) {
+			  return this.influx.createDatabase('SensorDataIOT');
 			}
 			return null;
 		}).catch( error => console.log(error));
