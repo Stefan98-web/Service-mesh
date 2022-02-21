@@ -69,7 +69,7 @@ services:
         SERVICES: analytics
         ADMIN_USER: admin
         ADMIN_PASSWORD: admin
-        INFLUXDB_DATABASE: sensorDataIOTAnalytics
+        INFLUXDB_DATABASE: SensorDataIOTA
         INFLUXDB_HOST: influx
       ports:
         - "5000:5000"

@@ -1,18 +1,13 @@
 "use strict";
 
-
-const { response } = require('express');
 const mqtt=require('mqtt');
 const request = require('request');
-const DbService = require("../mixins/db.mixin");
+const Influx = require('influx');
 var client = null;
 var service=null;
 
 module.exports = {
 	name: "analytics",
-	mixins: [
-		DbService("beach-water-quality-analytics")
-	],
 	settings: {
 	},
 	actions: {
@@ -37,7 +32,22 @@ module.exports = {
 
 				if(warningExist!="No warning")
 				{
-                	this.adapter.insert({ "Beach name": warning.name, "Water temperature": warning.temp, "Battery life": warning.bat, "Wave period": warning.waveperiod, "Time": warning.time, "warning": warning.warning });
+                	
+					this.influx.writePoints([
+						{ 
+							measurement: 'SensorDataIOTA',
+							fields: {
+								BeachName: warning.name,
+								MeasurementTimestamp: warning.time,
+								WaterTemperature: parseFloat(warning.temp),
+								TransducerDepth: 0.123,
+								WavePeriod: parseFloat(warning.waveperiod),
+								BatteryLife: parseFloat(warning.bat),
+								Warning: warning.warning
+							},
+							time: Date.now() 
+						}
+					]);
 					client.publish("Command", JSON.stringify(warning));
 				}
             },
@@ -78,6 +88,37 @@ module.exports = {
         client.on("connect", function() { console.log("Analytics connected to MQTT") }); 
         client.on("error", function(error){
             console.log("Can't connect" + error)});
+
+			this.influx = new Influx.InfluxDB({
+				host: process.env.INFLUXDB_HOST || 'influx',
+				database: process.env.INFLUXDB_DATABASE || 'SensorDataIOTA',
+				port: 8086,
+				username: process.env.ADMIN_USER || 'admin',
+				password: process.env.ADMIN_PASSWORD || 'admin',
+				schema: [
+					{
+						measurement: 'SensorDataIOTA',
+						fields: {
+							BeachName: Influx.FieldType.STRING,
+							MeasurementTimestamp: Influx.FieldType.STRING,
+							WaterTemperature: Influx.FieldType.FLOAT,
+							TransducerDepth: Influx.FieldType.FLOAT,
+							WavePeriod: Influx.FieldType.FLOAT,
+							BatteryLife: Influx.FieldType.FLOAT,
+							Warning: Influx.FieldType.STRING
+						},
+						tags: ['host'],
+					}
+				]
+			});
+			
+			this.influx.getDatabaseNames().then((names) => {
+				console.log(names)
+				if (!names.includes('SensorDataIOTA')) {
+				  return this.influx.createDatabase('SensorDataIOTA');
+				}
+				return null;
+			}).catch( error => console.log(error));
 	},
 
 	/**
