@@ -17,6 +17,7 @@
     "csv-parser": "^3.0.0",
     "express": "^4.17.1",
     "fs": "^0.0.1-security",
+    "helm": "^0.2.1",
     "http": "^0.0.1-security",
     "influx": "^5.9.3",
     "mkdirp": "^0.5.5",

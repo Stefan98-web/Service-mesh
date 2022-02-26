@@ -52,13 +52,15 @@ spec:
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: production-microservice
+        - name: TRANSPORTER
+          value: nats
         imagePullPolicy: Always
         livenessProbe:
           exec:
             command:
             - cat
-            - /tmp/healthy
-          initialDelaySeconds: 20
+            - /tmp/healthz
+          initialDelaySeconds: 30
           periodSeconds: 5
 ---
 apiVersion: v1
@@ -95,13 +97,15 @@ spec:
           value: influxdb
         - name: INFLUXDB_PORT
           value: '8086'
+        - name: TRANSPORTER
+          value: nats
         imagePullPolicy: Always
         livenessProbe:
           exec:
             command:
             - cat
-            - /tmp/healthy
-          initialDelaySeconds: 20
+            - /tmp/healthz
+          initialDelaySeconds: 30
           periodSeconds: 5
 ---
 apiVersion: v1
@@ -138,13 +142,15 @@ spec:
           value: influxdb
         - name: INFLUXDB_PORT
           value: '8086'
+        - name: TRANSPORTER
+          value: nats
         imagePullPolicy: Always
         livenessProbe:
           exec:
             command:
             - cat
-            - /tmp/healthy
-          initialDelaySeconds: 20
+            - /healthz/ready
+          initialDelaySeconds: 30
           periodSeconds: 5
 ---
 apiVersion: v1
@@ -179,13 +185,15 @@ spec:
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: production-microservice
+        - name: TRANSPORTER
+          value: nats
         imagePullPolicy: Always
         livenessProbe:
           exec:
             command:
             - cat
-            - /tmp/healthy
-          initialDelaySeconds: 20
+            - /tmp/healthz
+          initialDelaySeconds: 30
           periodSeconds: 5
 ---
 apiVersion: v1
@@ -220,13 +228,15 @@ spec:
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: production-microservice
+        - name: TRANSPORTER
+          value: nats
         imagePullPolicy: Always
         livenessProbe:
           exec:
             command:
             - cat
-            - /tmp/healthy
-          initialDelaySeconds: 20
+            - /tmp/healthz
+          initialDelaySeconds: 30
           periodSeconds: 5
 ---
 apiVersion: v1
@@ -354,7 +364,7 @@ spec:
   - ReadWriteOnce
   resources:
     requests:
-      storage: 1Gi
+      storage: 2Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -372,12 +382,12 @@ spec:
     spec:
       containers:
       - name: nats
-        image: nats:1.4.0
+        image: nats
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: nats-main
+  name: nats
 spec:
   selector:
     app: nats
