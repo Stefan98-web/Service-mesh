@@ -49,6 +49,9 @@ spec:
       containers:
       - name: sensor
         image: stefan001/service-meshv2:sensor
+        resources:
+          limits:
+            memory: "128Mi"
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: production-microservice
@@ -61,7 +64,7 @@ spec:
           exec:
             command:
             - cat
-            - /tmp/healthz
+            - /healthz/ready
           initialDelaySeconds: 100
           periodSeconds: 50
 ---
@@ -94,6 +97,9 @@ spec:
       containers:
       - name: data
         image: stefan001/service-meshv2:data
+        resources:
+          limits:
+            memory: "128Mi"
         env:
         - name: INFLUXDB_HOST
           value: influx
@@ -114,7 +120,7 @@ spec:
           exec:
             command:
             - cat
-            - /tmp/healthz
+            - /healthz/ready
           initialDelaySeconds: 100
           periodSeconds: 50
 ---
@@ -147,6 +153,9 @@ spec:
       containers:
       - name: analytics
         image: stefan001/service-meshv2:analytics
+        resources:
+          limits:
+            memory: "128Mi"
         env:
         - name: INFLUXDB_HOST
           value: influx
@@ -200,6 +209,9 @@ spec:
       containers:
       - name: command
         image: stefan001/service-meshv2:command
+        resources:
+          limits:
+            memory: "128Mi"
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: production-microservice
@@ -212,7 +224,7 @@ spec:
           exec:
             command:
             - cat
-            - /tmp/healthz
+            - /healthz/read
           initialDelaySeconds: 100
           periodSeconds: 50
 ---
@@ -245,6 +257,9 @@ spec:
       containers:
       - name: gateway
         image: stefan001/service-meshv2:gateway
+        resources:
+          limits:
+            memory: "128Mi"
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: production-microservice
@@ -257,7 +272,7 @@ spec:
           exec:
             command:
             - cat
-            - /tmp/healthz
+            - /healthz/ready
           initialDelaySeconds: 100
           periodSeconds: 50
 ---
@@ -282,7 +297,7 @@ spec:
   selector:
     matchLabels:
       app: siddhi
-  replicas: 2
+  replicas: 1
   template: # template for the pods
     metadata:
       labels:
@@ -387,7 +402,7 @@ spec:
   - ReadWriteOnce
   resources:
     requests:
-      storage: 2Gi
+      storage: 128Mi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -410,7 +425,7 @@ spec:
           exec:
             command:
             - cat
-            - /tmp/healthz
+            - /healthz/ready
           initialDelaySeconds: 100
           periodSeconds: 50
 ---
