@@ -1143,12 +1143,12 @@ data:
           "logLevel": "warning",
           "privileged": false,
           "readinessFailureThreshold": 30,
-          "readinessInitialDelaySeconds": 1,
-          "readinessPeriodSeconds": 2,
+          "readinessInitialDelaySeconds": 10,
+          "readinessPeriodSeconds": 5,
           "resources": {
             "limits": {
               "cpu": "2000m",
-              "memory": "1024Mi"
+              "memory": "128Mi"
             },
             "requests": {
               "cpu": "10m",
@@ -1163,7 +1163,7 @@ data:
           "resources": {
             "limits": {
               "cpu": "2000m",
-              "memory": "1024Mi"
+              "memory": "128Mi"
             },
             "requests": {
               "cpu": "10m",
