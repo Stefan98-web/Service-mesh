@@ -14,7 +14,8 @@ spec:
     spec:
       containers:
       - name: webdashboard
-        image: stefan001/service-mesh:webdashboard
+        image: stefan001/service-meshv2:web
+        imagePullPolicy: Always
 ---
 apiVersion: v1
 kind: Service
@@ -49,6 +50,10 @@ spec:
       containers:
       - name: sensor
         image: stefan001/service-meshv2:sensor
+        #args:
+        #  - /bin/sh
+        #  - -c
+        #  - ls
         resources:
           limits:
             memory: "128Mi"
@@ -59,14 +64,21 @@ spec:
           value: services
         - name: TRANSPORTER
           value: nats://nats:4222
-        #imagePullPolicy: Always
-        livenessProbe:
-          exec:
-            command:
-            - cat
-            - /healthz/ready
-          initialDelaySeconds: 100
-          periodSeconds: 50
+        imagePullPolicy: Always
+        #livenessProbe:
+        #  exec:
+        #    command:
+        #    - cat
+        #    - /healthz/ready
+        #  initialDelaySeconds: 20
+        #  periodSeconds: 5
+        volumeMounts:
+        - name: mydir
+          mountPath: /dir
+      volumes:
+      - name: mydir
+        hostPath:
+          path: /data
 ---
 apiVersion: v1
 kind: Service
@@ -97,6 +109,10 @@ spec:
       containers:
       - name: data
         image: stefan001/service-meshv2:data
+        #args:
+        #  - /bin/sh
+        #  - -c
+        #  - ls
         resources:
           limits:
             memory: "128Mi"
@@ -115,14 +131,14 @@ spec:
           value: services
         - name: TRANSPORTER
           value: nats://nats:4222
-        #imagePullPolicy: Always
-        livenessProbe:
-          exec:
-            command:
-            - cat
-            - /healthz/ready
-          initialDelaySeconds: 100
-          periodSeconds: 50
+        imagePullPolicy: Always
+        #livenessProbe:
+        #  exec:
+        #    command:
+        #    - cat
+        #    - /healthz/ready
+        #  initialDelaySeconds: 20
+        #  periodSeconds: 5
 ---
 apiVersion: v1
 kind: Service
@@ -153,6 +169,10 @@ spec:
       containers:
       - name: analytics
         image: stefan001/service-meshv2:analytics
+        #args:
+        #  - /bin/sh
+        #  - -c
+        #  - mkdir /healthz/ready
         resources:
           limits:
             memory: "128Mi"
@@ -171,14 +191,14 @@ spec:
           value: services
         - name: TRANSPORTER
           value: nats://nats:4222
-        #imagePullPolicy: Always
-        livenessProbe:
-          exec:
-            command:
-            - cat
-            - /healthz/ready
-          initialDelaySeconds: 100
-          periodSeconds: 50
+        imagePullPolicy: Always
+        #livenessProbe:
+        #  exec:
+        #    command:
+        #    - cat
+        #    - /healthz/ready
+        #  initialDelaySeconds: 20
+        #  periodSeconds: 5
 ---
 apiVersion: v1
 kind: Service
@@ -209,6 +229,10 @@ spec:
       containers:
       - name: command
         image: stefan001/service-meshv2:command
+        #args:
+        #  - /bin/sh
+        #  - -c
+        #  - mkdir /healthz/ready
         resources:
           limits:
             memory: "128Mi"
@@ -219,14 +243,14 @@ spec:
           value: services
         - name: TRANSPORTER
           value: nats://nats:4222
-        #imagePullPolicy: Always
-        livenessProbe:
-          exec:
-            command:
-            - cat
-            - /healthz/read
-          initialDelaySeconds: 100
-          periodSeconds: 50
+        imagePullPolicy: Always
+        #livenessProbe:
+        #  exec:
+        #    command:
+        #    - cat
+        #    - /healthz/ready
+        #  initialDelaySeconds: 20
+        #  periodSeconds: 5
 ---
 apiVersion: v1
 kind: Service
@@ -257,6 +281,10 @@ spec:
       containers:
       - name: gateway
         image: stefan001/service-meshv2:gateway
+        #args:
+        #  - /bin/sh
+        #  - -c
+        #  - mkdir /healthz/ready
         resources:
           limits:
             memory: "128Mi"
@@ -267,14 +295,14 @@ spec:
           value: services
         - name: TRANSPORTER
           value: nats://nats:4222
-        #imagePullPolicy: Always
-        livenessProbe:
-          exec:
-            command:
-            - cat
-            - /healthz/ready
-          initialDelaySeconds: 100
-          periodSeconds: 50
+        imagePullPolicy: Always
+        #livenessProbe:
+        #  exec:
+        #    command:
+        #    - cat
+        #    - /healthz/ready
+        #  initialDelaySeconds: 20
+        #  periodSeconds: 5
 ---
 apiVersion: v1
 kind: Service
@@ -289,35 +317,59 @@ spec:
       nodePort: 31516
   type: NodePort
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: siddhi.io/v1alpha2
+kind: SiddhiProcess
 metadata:
   name: siddhi
 spec:
-  selector:
-    matchLabels:
-      app: siddhi
-  replicas: 1
-  template: # template for the pods
-    metadata:
-      labels:
-        app: siddhi
-    spec:
-      containers:
-      - name: siddhi
-        image: stefan001/service-mesh:siddhi
+  apps:
+    - script: |
+        @App:name("appsiddhi")
+
+        @App:description("Analyzer of beach quality.")
+
+        @source(type = 'http', receiver.url='${RECEIVER_URL}', @map(type = 'json'))
+        @Annotation(property = "value")
+        define stream InputStream (name string, temp int, bat int, waveperiod int, time string);
+
+        @sink(type='http', publisher.url='http://gateway:4000/CEP',method='POST', headers='Content-type:application/json', basic.auth.enabled='false', @map(type='json'))
+        define stream OutputStream (name string, temp int, bat int, waveperiod int, time string, warning string );
+
+        @info(name = 'TemperatureQuery')
+        from InputStream#window.length(1)[temp > 0]
+        select name, temp, bat, waveperiod, time, 
+        ifThenElse(temp<15, "Cold water" , ifThenElse(temp<25, "Medium temperature of water", "No warning") ) as warning
+        insert into OutputStream;
+
+        @info(name = 'BatteryQuery')
+        from InputStream#window.length(1)[bat > 0]
+        select name, temp, bat, waveperiod, time,
+        ifThenElse(bat<10, "Low battery level", "No warning") as warning
+        insert into OutputStream;
+
+        @info(name = 'WavePeriodQuery')
+        from InputStream#window.length(1)[waveperiod > 0]
+        select name, temp, bat, waveperiod, time,
+        ifThenElse(waveperiod<4, "Low wave period", "No warning") as warning
+        insert into OutputStream;
+
+  container:
+    env:
+      - name: RECEIVER_URL
+        value: "http://0.0.0.0:8006/analytics"
+    image: "siddhiio/siddhi-runner-ubuntu:5.1.0"
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: siddhi
-spec:
-  selector:
-    app: siddhi
-  ports:
-    - name: http
-      port: 8006
-  type: ClusterIP
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: siddhi
+#spec:
+#  selector:
+#    app: siddhi
+#  ports:
+#    - name: http
+#      port: 8006
+#  type: ClusterIP
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -388,7 +440,7 @@ spec:
   selector:
     app: influx-db
   ports:
-    - name: tcp
+    - name: http
       port: 8086
       targetPort: 8086
   type: ClusterIP
@@ -421,13 +473,13 @@ spec:
       containers:
       - name: nats
         image: nats
-        livenessProbe:
-          exec:
-            command:
-            - cat
-            - /healthz/ready
-          initialDelaySeconds: 100
-          periodSeconds: 50
+        #livenessProbe:
+        #  exec:
+        #    command:
+        #    - cat
+        #    - /healthz/ready
+        #  initialDelaySeconds: 40
+        #  periodSeconds: 5
 ---
 apiVersion: v1
 kind: Service

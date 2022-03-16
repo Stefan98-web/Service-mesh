@@ -2,8 +2,8 @@ import React, { Component } from 'react';
 import SensorList from './sensorDataList';
 class InputsData extends Component {
     static defaultProps = {
-        action: "http://localhost:4000/beachinfo",
-        method: "GET",
+        action: "http://gateway:4000/beachinfo",
+        method: "PUT",
         onClose() {}
     }
     constructor(props) {

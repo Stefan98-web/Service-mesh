@@ -1143,7 +1143,7 @@ data:
           "logLevel": "warning",
           "privileged": false,
           "readinessFailureThreshold": 30,
-          "readinessInitialDelaySeconds": 10,
+          "readinessInitialDelaySeconds": 20,
           "readinessPeriodSeconds": 5,
           "resources": {
             "limits": {
@@ -2261,14 +2261,14 @@ spec:
             path: /healthz/ready
             port: 15021
             scheme: HTTP
-          initialDelaySeconds: 1
+          initialDelaySeconds: 5
           periodSeconds: 2
           successThreshold: 1
           timeoutSeconds: 1
         resources:
           limits:
             cpu: 2000m
-            memory: 1024Mi
+            memory: 128Mi
           requests:
             cpu: 10m
             memory: 40Mi
@@ -2517,14 +2517,14 @@ spec:
             path: /healthz/ready
             port: 15021
             scheme: HTTP
-          initialDelaySeconds: 1
+          initialDelaySeconds: 5
           periodSeconds: 2
           successThreshold: 1
           timeoutSeconds: 1
         resources:
           limits:
             cpu: 2000m
-            memory: 1024Mi
+            memory: 128Mi
           requests:
             cpu: 10m
             memory: 40Mi

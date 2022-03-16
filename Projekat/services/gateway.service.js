@@ -7,7 +7,7 @@ const cors = require("cors");
 module.exports = {
     name: "gateway",
     settings: {
-        port: process.env.PORT || 3000,
+        port: 4000,
         cors: {
             // Configures the Access-Control-Allow-Origin CORS header.
             origin: "*",
