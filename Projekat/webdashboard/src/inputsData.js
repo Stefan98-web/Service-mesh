@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import SensorList from './sensorDataList';
 class InputsData extends Component {
     static defaultProps = {
-        action: "http://gateway:4000/beachinfo",
+        action: "http://172.23.56.192:31516/beachinfo",
         method: "PUT",
         onClose() {}
     }

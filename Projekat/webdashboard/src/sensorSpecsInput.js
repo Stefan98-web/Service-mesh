@@ -3,7 +3,7 @@ import SensorSpecs from './sensorSpecs';
 
 class SensorSpecsInput extends Component {
     static defaultProps = {
-        action: "http://gateway:4000/sensorinfo",
+        action: "http://172.23.56.192:31516/sensorinfo",
         method: "PUT",
         onClose() {}
     }

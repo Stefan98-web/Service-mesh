@@ -68,7 +68,7 @@ module.exports = {
 			
 			request.post({
 				headers: { 'content-type': 'application/json' },
-				url: `http://siddhi:8006/analytics`,
+				url: `http://siddhi-0:8006/analytics`,
 				body: JSON.stringify({"name":data.name,"temp":parseInt(data.temp),"bat":parseInt(data.bat),"waveperiod":parseInt(data.waveperiod),"time":data.time})
 			}, (err, Response, body) => {
 				if (!err) {

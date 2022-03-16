@@ -16,7 +16,7 @@ class Notifications extends Component {
     }
     componentDidMount() {
 
-        socket = socketIOClient("http://gateway:4000");
+        socket = socketIOClient("http://172.23.56.192:31516");
         socket.on('Notification', (data) => {
             this.handleChange(data);
         })
